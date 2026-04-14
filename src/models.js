@@ -5,7 +5,10 @@ function toNumber(value) {
 
 function toPerMillion(price) {
   const numeric = toNumber(price);
-  return numeric === null ? null : numeric * 1_000_000;
+  if (numeric === null || numeric < 0) {
+    return null;
+  }
+  return numeric * 1_000_000;
 }
 
 function arrayify(value) {
@@ -42,10 +45,15 @@ function compareValues(left, right, direction = "asc") {
 }
 
 export function normalizeModel(model) {
+  const promptPrice = toNumber(model.pricing?.prompt);
+  const completionPrice = toNumber(model.pricing?.completion);
+
   return {
     ...model,
     prompt_price_per_million: toPerMillion(model.pricing?.prompt),
     completion_price_per_million: toPerMillion(model.pricing?.completion),
+    prompt_price_is_special: promptPrice !== null && promptPrice < 0,
+    completion_price_is_special: completionPrice !== null && completionPrice < 0,
     request_price: toNumber(model.pricing?.request),
     image_price: toNumber(model.pricing?.image),
     input_modalities: model.architecture?.input_modalities || [],

@@ -41,10 +41,19 @@ function buildClient(options) {
 function renderModelRows(models) {
   return renderTable(models, [
     { label: "Model", value: (model) => model.id },
-    { label: "Prompt", value: (model) => formatCurrencyPerMillion(model.prompt_price_per_million) },
+    {
+      label: "Prompt",
+      value: (model) =>
+        model.prompt_price_is_special
+          ? "router"
+          : formatCurrencyPerMillion(model.prompt_price_per_million),
+    },
     {
       label: "Completion",
-      value: (model) => formatCurrencyPerMillion(model.completion_price_per_million),
+      value: (model) =>
+        model.completion_price_is_special
+          ? "router"
+          : formatCurrencyPerMillion(model.completion_price_per_million),
     },
     { label: "Context", value: (model) => formatInteger(model.context_length) },
     { label: "Outputs", value: (model) => model.output_modalities.join(",") || "-" },

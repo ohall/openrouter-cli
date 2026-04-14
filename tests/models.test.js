@@ -32,6 +32,21 @@ test("normalizeModel adds per-million price fields", () => {
   assert.equal(model.is_moderated, true);
 });
 
+test("normalizeModel treats negative router pricing as special", () => {
+  const model = normalizeModel({
+    ...baseModel,
+    pricing: {
+      prompt: "-1",
+      completion: "-1",
+    },
+  });
+
+  assert.equal(model.prompt_price_per_million, null);
+  assert.equal(model.completion_price_per_million, null);
+  assert.equal(model.prompt_price_is_special, true);
+  assert.equal(model.completion_price_is_special, true);
+});
+
 test("applyModelFilters filters on price, context, and supported parameters", () => {
   const models = applyModelFilters(
     [
