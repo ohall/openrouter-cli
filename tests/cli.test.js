@@ -87,3 +87,18 @@ test("returns auth exit code and JSON error for missing key", async () => {
     }
   }
 });
+
+test("fails fast on invalid numeric options", async () => {
+  const result = await captureOutput(() =>
+    main(["models", "list", "--max-prompt-price", "oops", "--json"]),
+  );
+
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.stdout, "");
+  assert.deepEqual(JSON.parse(result.stderr), {
+    error: {
+      code: "INPUT_ERROR",
+      message: "Invalid value for --max-prompt-price: oops",
+    },
+  });
+});

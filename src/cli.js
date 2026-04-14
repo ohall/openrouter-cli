@@ -57,6 +57,28 @@ function resolveExitCode(error) {
   return 1;
 }
 
+function parseNumericOption(options, key, { min = null, integer = false } = {}) {
+  const raw = options[key];
+  if (raw === undefined || raw === null || raw === false) {
+    return null;
+  }
+
+  const parsed = Number(raw);
+  const isValidNumber = integer ? Number.isInteger(parsed) : Number.isFinite(parsed);
+  if (!isValidNumber || (min !== null && parsed < min)) {
+    throw new OpenRouterError(`Invalid value for --${key}: ${raw}`, { code: "INPUT_ERROR" });
+  }
+
+  return parsed;
+}
+
+function validateModelFilterOptions(options) {
+  parseNumericOption(options, "max-prompt-price", { min: 0 });
+  parseNumericOption(options, "max-completion-price", { min: 0 });
+  parseNumericOption(options, "min-context", { min: 0, integer: true });
+  parseNumericOption(options, "limit", { min: 0, integer: true });
+}
+
 function buildClient(options) {
   const baseUrl = resolveBaseUrl({
     baseUrl: options["base-url"] || process.env.OPENROUTER_BASE_URL,
@@ -111,6 +133,7 @@ function renderEndpointRows(endpoints) {
 
 async function handleModels(command, options) {
   const client = buildClient(options);
+  validateModelFilterOptions(options);
 
   if (command === "list") {
     const query = {};

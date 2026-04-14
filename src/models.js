@@ -66,13 +66,11 @@ export function applyModelFilters(models, options = {}) {
   const normalized = models.map(normalizeModel);
   const requiredParameters = arrayify(options.support);
   const requestedModalities = arrayify(options.modality);
-  const limit = options.limit ? Number(options.limit) : null;
+  const limit = toNumber(options.limit);
   const search = typeof options.search === "string" ? options.search.toLowerCase() : null;
-  const maxPromptPrice = options["max-prompt-price"] ? Number(options["max-prompt-price"]) : null;
-  const maxCompletionPrice = options["max-completion-price"]
-    ? Number(options["max-completion-price"])
-    : null;
-  const minContext = options["min-context"] ? Number(options["min-context"]) : null;
+  const maxPromptPrice = toNumber(options["max-prompt-price"]);
+  const maxCompletionPrice = toNumber(options["max-completion-price"]);
+  const minContext = toNumber(options["min-context"]);
   const freeOnly = Boolean(options["free-only"]);
 
   const filtered = normalized.filter((model) => {
@@ -145,7 +143,7 @@ export function applyModelFilters(models, options = {}) {
     }
   });
 
-  return limit && Number.isFinite(limit) ? filtered.slice(0, limit) : filtered;
+  return limit !== null && limit >= 0 ? filtered.slice(0, limit) : filtered;
 }
 
 export function normalizeEndpoint(endpoint) {

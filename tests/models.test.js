@@ -91,3 +91,8 @@ test("sortEndpoints orders by latency ascending", () => {
   assert.deepEqual(endpoints.map((endpoint) => endpoint.provider_name), ["Fast", "Slow"]);
   assert.equal(normalizeEndpoint(endpoints[0]).latency_p50, 0.2);
 });
+
+test("applyModelFilters respects --limit 0", () => {
+  const filtered = applyModelFilters([baseModel], { limit: 0 });
+  assert.equal(filtered.length, 0);
+});
