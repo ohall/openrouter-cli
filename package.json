@@ -1,0 +1,17 @@
+{
+  "name": "openrouter-cli",
+  "version": "0.1.0",
+  "description": "Dependency-light Node.js CLI for discovering and inspecting OpenRouter models.",
+  "type": "module",
+  "bin": {
+    "openrouter": "./bin/openrouter.js"
+  },
+  "scripts": {
+    "start": "node ./bin/openrouter.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
