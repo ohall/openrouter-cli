@@ -42,6 +42,7 @@ export class OpenRouterClient {
     appTitle = "openrouter-cli",
     referer,
     fetchImpl = globalThis.fetch,
+    timeoutMs = 30_000,
   } = {}) {
     if (typeof fetchImpl !== "function") {
       throw new Error("A fetch implementation is required.");
@@ -52,6 +53,7 @@ export class OpenRouterClient {
     this.appTitle = appTitle;
     this.referer = referer;
     this.fetchImpl = fetchImpl;
+    this.timeoutMs = timeoutMs;
   }
 
   async request(path, { query, requireAuth = false } = {}) {
@@ -79,8 +81,15 @@ export class OpenRouterClient {
       response = await this.fetchImpl(joinUrl(this.baseUrl, path, query), {
         method: "GET",
         headers,
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new OpenRouterError(`Request timed out after ${this.timeoutMs}ms`, {
+          code: "NETWORK_ERROR",
+          cause: error,
+        });
+      }
       throw new OpenRouterError(`Network request failed: ${error.message}`, {
         code: "NETWORK_ERROR",
         cause: error,

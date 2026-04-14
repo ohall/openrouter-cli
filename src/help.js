@@ -21,6 +21,7 @@ Examples:
 
 Useful options:
   --json                      Emit JSON for agents and scripts
+  --timeout MS                HTTP timeout in milliseconds (default: 30000)
   --region eu                 Use https://eu.openrouter.ai/api/v1 for EU in-region filtering
   --base-url URL              Override the API base URL
   --api-key TOKEN             Override OPENROUTER_API_KEY for a single command
@@ -29,6 +30,7 @@ Environment:
   OPENROUTER_API_KEY          API key used for authenticated commands
   OPENROUTER_BASE_URL         Default base URL override
   OPENROUTER_REGION           "eu" to default to the EU endpoint
+  OPENROUTER_TIMEOUT_MS       Default HTTP timeout in milliseconds
   OPENROUTER_HTTP_REFERER     Optional OpenRouter attribution header
   OPENROUTER_APP_TITLE        Optional OpenRouter app title header`;
 }

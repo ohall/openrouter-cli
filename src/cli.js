@@ -79,6 +79,27 @@ function validateModelFilterOptions(options) {
   parseNumericOption(options, "limit", { min: 0, integer: true });
 }
 
+function resolveTimeoutMs(options) {
+  const fromCli = parseNumericOption(options, "timeout", { min: 1, integer: true });
+  if (fromCli !== null) {
+    return fromCli;
+  }
+
+  const fromEnv = process.env.OPENROUTER_TIMEOUT_MS;
+  if (fromEnv === undefined) {
+    return 30_000;
+  }
+
+  const parsed = Number(fromEnv);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new OpenRouterError(
+      `Invalid value for OPENROUTER_TIMEOUT_MS: ${process.env.OPENROUTER_TIMEOUT_MS}`,
+      { code: "INPUT_ERROR" },
+    );
+  }
+  return parsed;
+}
+
 function buildClient(options) {
   const baseUrl = resolveBaseUrl({
     baseUrl: options["base-url"] || process.env.OPENROUTER_BASE_URL,
@@ -90,6 +111,7 @@ function buildClient(options) {
     baseUrl,
     referer: process.env.OPENROUTER_HTTP_REFERER,
     appTitle: process.env.OPENROUTER_APP_TITLE || "openrouter-cli",
+    timeoutMs: resolveTimeoutMs(options),
   });
 }
 

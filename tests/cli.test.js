@@ -102,3 +102,16 @@ test("fails fast on invalid numeric options", async () => {
     },
   });
 });
+
+test("fails fast on invalid timeout option", async () => {
+  const result = await captureOutput(() => main(["models", "list", "--timeout", "0", "--json"]));
+
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.stdout, "");
+  assert.deepEqual(JSON.parse(result.stderr), {
+    error: {
+      code: "INPUT_ERROR",
+      message: "Invalid value for --timeout: 0",
+    },
+  });
+});
