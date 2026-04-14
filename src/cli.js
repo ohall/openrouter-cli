@@ -20,7 +20,18 @@ function write(message, stream = process.stdout) {
   stream.write(`${message}\n`);
 }
 
-function writeError(message) {
+function wantsJsonOutput(argv, options) {
+  if (options?.json) {
+    return true;
+  }
+  return argv.includes("--json") || argv.includes("-j");
+}
+
+function writeError(message, { json = false, code = "CLI_ERROR" } = {}) {
+  if (json) {
+    process.stderr.write(`${JSON.stringify({ error: { code, message } })}\n`);
+    return;
+  }
   process.stderr.write(`Error: ${message}\n`);
 }
 
@@ -119,7 +130,10 @@ async function handleModels(command, options) {
   if (command === "endpoints") {
     const modelId = options._modelId;
     if (!modelId) {
-      write(renderEndpointsHelp());
+      writeError("Missing required argument: <author/slug>.", { json: Boolean(options.json) });
+      if (!options.json) {
+        write(renderEndpointsHelp(), process.stderr);
+      }
       return 1;
     }
     const payload = await client.getModelEndpoints(modelId);
@@ -175,16 +189,20 @@ function resolveHelpTarget(positionals) {
 }
 
 export async function main(argv) {
+  const jsonRequested = wantsJsonOutput(argv);
   let parsed;
   try {
     parsed = parseArgs(argv);
   } catch (error) {
-    writeError(error.message);
-    write(renderMainHelp());
+    writeError(error.message, { json: jsonRequested });
+    if (!jsonRequested) {
+      write(renderMainHelp(), process.stderr);
+    }
     return 1;
   }
 
   const { options, positionals } = parsed;
+  const outputJson = wantsJsonOutput(argv, options);
 
   if (options.help || positionals.length === 0) {
     const target = resolveHelpTarget(positionals);
@@ -234,11 +252,13 @@ export async function main(argv) {
       return await handleKey(subcommand, options);
     }
 
-    writeError(`Unknown command: ${positionals.join(" ")}`);
-    write(renderMainHelp());
+    writeError(`Unknown command: ${positionals.join(" ")}`, { json: outputJson });
+    if (!outputJson) {
+      write(renderMainHelp(), process.stderr);
+    }
     return 1;
   } catch (error) {
-    writeError(error.message);
+    writeError(error.message, { json: outputJson });
     return 1;
   }
 }

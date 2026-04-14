@@ -1,0 +1,65 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { main } from "../src/cli.js";
+
+function captureOutput(run) {
+  const stdoutChunks = [];
+  const stderrChunks = [];
+  const originalStdoutWrite = process.stdout.write;
+  const originalStderrWrite = process.stderr.write;
+
+  process.stdout.write = (chunk, ...args) => {
+    stdoutChunks.push(String(chunk));
+    if (typeof args[args.length - 1] === "function") {
+      args[args.length - 1]();
+    }
+    return true;
+  };
+
+  process.stderr.write = (chunk, ...args) => {
+    stderrChunks.push(String(chunk));
+    if (typeof args[args.length - 1] === "function") {
+      args[args.length - 1]();
+    }
+    return true;
+  };
+
+  return Promise.resolve()
+    .then(() => run())
+    .finally(() => {
+      process.stdout.write = originalStdoutWrite;
+      process.stderr.write = originalStderrWrite;
+    })
+    .then((exitCode) => ({
+      exitCode,
+      stdout: stdoutChunks.join(""),
+      stderr: stderrChunks.join(""),
+    }));
+}
+
+test("returns JSON error for parse failures with --json", async () => {
+  const result = await captureOutput(() => main(["models", "list", "-x", "--json"]));
+
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.stdout, "");
+  assert.deepEqual(JSON.parse(result.stderr), {
+    error: {
+      code: "CLI_ERROR",
+      message: "Unknown short option: -x",
+    },
+  });
+});
+
+test("returns JSON error for unknown command with --json", async () => {
+  const result = await captureOutput(() => main(["unknown", "--json"]));
+
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.stdout, "");
+  assert.deepEqual(JSON.parse(result.stderr), {
+    error: {
+      code: "CLI_ERROR",
+      message: "Unknown command: unknown",
+    },
+  });
+});
