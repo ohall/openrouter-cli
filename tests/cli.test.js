@@ -63,3 +63,27 @@ test("returns JSON error for unknown command with --json", async () => {
     },
   });
 });
+
+test("returns auth exit code and JSON error for missing key", async () => {
+  const originalApiKey = process.env.OPENROUTER_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
+
+  try {
+    const result = await captureOutput(() => main(["key", "info", "--json"]));
+
+    assert.equal(result.exitCode, 2);
+    assert.equal(result.stdout, "");
+    assert.deepEqual(JSON.parse(result.stderr), {
+      error: {
+        code: "AUTH_REQUIRED",
+        message: "This command requires OPENROUTER_API_KEY or --api-key.",
+      },
+    });
+  } finally {
+    if (originalApiKey === undefined) {
+      delete process.env.OPENROUTER_API_KEY;
+    } else {
+      process.env.OPENROUTER_API_KEY = originalApiKey;
+    }
+  }
+});

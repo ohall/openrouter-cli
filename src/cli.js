@@ -14,7 +14,7 @@ import {
   renderModelsListHelp,
 } from "./help.js";
 import { applyModelFilters, sortEndpoints } from "./models.js";
-import { OpenRouterClient, resolveBaseUrl } from "./openrouter-api.js";
+import { OpenRouterClient, OpenRouterError, resolveBaseUrl } from "./openrouter-api.js";
 
 function write(message, stream = process.stdout) {
   stream.write(`${message}\n`);
@@ -33,6 +33,28 @@ function writeError(message, { json = false, code = "CLI_ERROR" } = {}) {
     return;
   }
   process.stderr.write(`Error: ${message}\n`);
+}
+
+function resolveExitCode(error) {
+  if (error instanceof OpenRouterError) {
+    switch (error.code) {
+      case "AUTH_REQUIRED":
+      case "AUTH_ERROR":
+        return 2;
+      case "API_ERROR":
+        return 3;
+      case "NETWORK_ERROR":
+        return 4;
+      default:
+        return 1;
+    }
+  }
+
+  if (error?.code === "INPUT_ERROR") {
+    return 1;
+  }
+
+  return 1;
 }
 
 function buildClient(options) {
@@ -130,7 +152,10 @@ async function handleModels(command, options) {
   if (command === "endpoints") {
     const modelId = options._modelId;
     if (!modelId) {
-      writeError("Missing required argument: <author/slug>.", { json: Boolean(options.json) });
+      writeError("Missing required argument: <author/slug>.", {
+        json: Boolean(options.json),
+        code: "INPUT_ERROR",
+      });
       if (!options.json) {
         write(renderEndpointsHelp(), process.stderr);
       }
@@ -194,11 +219,11 @@ export async function main(argv) {
   try {
     parsed = parseArgs(argv);
   } catch (error) {
-    writeError(error.message, { json: jsonRequested });
+    writeError(error.message, { json: jsonRequested, code: error.code || "CLI_ERROR" });
     if (!jsonRequested) {
       write(renderMainHelp(), process.stderr);
     }
-    return 1;
+    return resolveExitCode(error);
   }
 
   const { options, positionals } = parsed;
@@ -258,7 +283,7 @@ export async function main(argv) {
     }
     return 1;
   } catch (error) {
-    writeError(error.message, { json: outputJson });
-    return 1;
+    writeError(error.message, { json: outputJson, code: error.code || "CLI_ERROR" });
+    return resolveExitCode(error);
   }
 }

@@ -26,6 +26,15 @@ export function resolveBaseUrl({ baseUrl, region }) {
   return DEFAULT_BASE_URL;
 }
 
+export class OpenRouterError extends Error {
+  constructor(message, { code = "OPENROUTER_ERROR", status, cause } = {}) {
+    super(message, cause ? { cause } : undefined);
+    this.name = "OpenRouterError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export class OpenRouterClient {
   constructor({
     apiKey,
@@ -47,7 +56,9 @@ export class OpenRouterClient {
 
   async request(path, { query, requireAuth = false } = {}) {
     if (requireAuth && !this.apiKey) {
-      throw new Error("This command requires OPENROUTER_API_KEY or --api-key.");
+      throw new OpenRouterError("This command requires OPENROUTER_API_KEY or --api-key.", {
+        code: "AUTH_REQUIRED",
+      });
     }
 
     const headers = {
@@ -63,10 +74,18 @@ export class OpenRouterClient {
       headers.Authorization = `Bearer ${this.apiKey}`;
     }
 
-    const response = await this.fetchImpl(joinUrl(this.baseUrl, path, query), {
-      method: "GET",
-      headers,
-    });
+    let response;
+    try {
+      response = await this.fetchImpl(joinUrl(this.baseUrl, path, query), {
+        method: "GET",
+        headers,
+      });
+    } catch (error) {
+      throw new OpenRouterError(`Network request failed: ${error.message}`, {
+        code: "NETWORK_ERROR",
+        cause: error,
+      });
+    }
 
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
@@ -74,7 +93,10 @@ export class OpenRouterClient {
         payload?.error?.message ||
         payload?.message ||
         `${response.status} ${response.statusText}`;
-      throw new Error(message);
+      throw new OpenRouterError(message, {
+        code: response.status === 401 || response.status === 403 ? "AUTH_ERROR" : "API_ERROR",
+        status: response.status,
+      });
     }
 
     return payload;
@@ -91,8 +113,9 @@ export class OpenRouterClient {
   getModelEndpoints(modelId) {
     const [author, ...slugParts] = modelId.split("/");
     if (!author || slugParts.length === 0) {
-      throw new Error(
+      throw new OpenRouterError(
         `Model id "${modelId}" must be in "author/slug" format, for example "openai/gpt-4o-mini".`,
+        { code: "INPUT_ERROR" },
       );
     }
     return this.request(`/models/${author}/${slugParts.join("/")}/endpoints`);
